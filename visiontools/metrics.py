@@ -31,13 +31,50 @@ def IOU(box, box_):
     union = area_box + area_box_ - intersection
 
     iou = intersection / union
-    
+
     return iou
+
+
+def IOU_by_dims(box, box_):
+
+    num_boxes = box.shape[0]
+
+    # calculate intersection topleft, bottomright
+    topleft_x = np.max(np.vstack((box[:,0], box_[:,0])).T, axis=1).reshape(-1,1)
+
+    topleft_y = np.max(np.vstack((box[:,1], box_[:,1])).T, axis=1).reshape(-1,1)
+
+    bottomright_x = np.min(np.vstack((box[:,2], box_[:,2])).T, axis=1).reshape(-1,1)
+
+    bottomright_y = np.min(np.vstack((box[:,3], box_[:,3])).T, axis=1).reshape(-1,1)
+
+    # calculate intersection area
+    width = np.max(np.hstack((np.zeros((num_boxes, 1)), bottomright_x - topleft_x)), axis=1).reshape(-1, 1)
+    height = np.max(np.hstack((np.zeros((num_boxes, 1)), bottomright_y - topleft_y)), axis=1).reshape(-1, 1)
+    intersection = width * height
+
+    # calcaulate area of the two bounding boxes
+    area_box = area(box)
+    area_box_ = area(box_)
+
+    # calculate the union area of the two boxes
+    union = area_box + area_box_ - intersection
+
+    # intersection over union
+    iou = intersection / union
+
+    return iou
+
+def area(box):
+
+    # area of bounding box
+    return ((box[:,2] - box[:,0]) * (box[:,3] - box[:,1])).reshape(-1, 1)
 
 
 if __name__ == '__main__':
 
-    box1 = np.array([[10., 15]])
-    box2 = np.array([[15, 10.]])
+    # tests
+    box1 = np.array([[0., 0., 1, 1], [100, 100, 200, 200], [200, 200, 300, 400]])
+    box2 = np.array([[0.5, 0.5, 1.5, 1.5], [1, 1, 2, 2], [225, 225, 300, 400]])
 
-    print IOU(box1,box2)
+    print IOU_by_dims(box1,box2)
