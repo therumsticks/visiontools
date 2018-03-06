@@ -87,3 +87,13 @@ class AnchorFinder:
         distance = 1. - iou
 
         return np.argmin(distance), np.max(iou)
+
+    def get_aspect_ratio(self):
+
+        # caclculate width / height
+        return self.cluster_centers[:,0] / self.cluster_centers[:,1]
+
+    def get_area(self):
+
+        # calculate width * height
+        return self.cluster_centers[:,0] * self.cluster_centers[:,1]
