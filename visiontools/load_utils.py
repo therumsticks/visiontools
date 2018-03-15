@@ -51,8 +51,72 @@ def load_pascal(path, mode='train'):
 
     return packets
 
+def load_kitti(path, mode='train', image_dir=None, label_dir=None):
+
+    packets = []
+
+    with open(path + mode + '.txt', 'rb') as f:
+
+        file_list = [x.strip() for x in f.readlines()]
+
+    for file in file_list:
+
+        image_path = image_dir + file + '.png'
+
+        label_path = label_dir + file + '.txt'
+
+        with open(label_path) as f:
+
+            object_list = []
+
+            for line in f:
+
+                obj_class, truncated, occluded, alpha, bx1, by1, bx2, by2, dz, dy, dx, tx, ty, tz, rot_y = line.split()
+
+                if obj_class == 'Car': #and float(truncated) == 0: #and float(occluded) == 0 :
+
+                    size = [float(x) for x in [dx, dy, dz]]
+
+                    position = [float(x) for x in [tx, ty, tz]]
+
+                    rot_y = float(rot_y)
+
+                    top_left = (int(float(bx1)), int(float(by1)))
+
+                    bottom_right = (int(float(bx2)), int(float(by2)))
+
+                    obj = Object(obj_class, top_left = top_left, bottom_right = bottom_right)
+
+                    obj.size = size
+
+                    obj.position = position
+
+                    object_list.append(obj)
+
+            if object_list != []:
+
+                packet = Packet(image_path, objects = object_list)
+
+            else:
+
+                continue
+
+        packets.append(packet)
+
+    return packets
+
 if __name__ == '__main__':
 
     packets = load_pascal('/home/therumsticks/Storage/Datasets/VOCdevkit/VOC2007/', mode='trainval')
+
+    packets[0].visualize()
+
+
+    dataset_dir = '/media/vision/New Volume/Multibin/'
+    training_dir = dataset_dir + 'training_data/'
+    image_dir = training_dir + 'images/'
+    label_dir = training_dir + 'labels/'
+
+    packets = load_kitti("/media/vision/New Volume/Projects/Deep3D/data/", mode="train", image_dir=image_dir, label_dir=label_dir)
 
     packets[0].visualize()
