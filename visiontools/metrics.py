@@ -70,6 +70,123 @@ def area(box):
     # area of bounding box
     return ((box[:,2] - box[:,0]) * (box[:,3] - box[:,1])).reshape(-1, 1)
 
+class MeanAveragePrecision:
+    """
+    Calculates mean average precision
+    Caveats : NMS already performed, Class Thresholding already performed, only
+            single class allowed
+    """
+
+    def __init__(self, prediction, target):
+
+        self.prediction = prediction
+
+        self.target = target
+
+    def calculate(self):
+        """
+        This method returns the precision and recall
+        """
+        # sort predictions based on confidence
+        # haven't used confidence thresholding. Input only thresholded preds
+        objects = self._sort(self.prediction.objects)
+
+        # for every object extract the bounding box and save it in set
+        prediction_objects = self._to_set(objects)
+
+        target_objects = self._to_set(self.target.objects)
+
+        # calculate precision recall
+        precision, recall = self._average_precision(prediction_objects, target_objects)
+
+        # calculate the average precision
+
+        return precision, recall
+
+    def _sort(self, objects):
+        """
+        This function sorts the bounding box detections in reverse order based
+        on the confidence
+        """
+        objects.sort(key=lambda x: x.confidence, reverse=True)
+        return objects
+
+    def _to_set(self, objects):
+
+        object_set = set()
+
+        for object in objects:
+
+            xmin, ymin = object.top_left
+
+            xmax, ymax = object.bottom_right
+
+            object_set.add((xmin, ymin, xmax, ymax))
+
+        return object_set
+
+    def _average_precision(self, predictions, targets):
+
+        epsilon = 1e-6
+
+        true_positive, false_positive, true_negative, false_negative = [0., 0., 0., 0.]
+
+        # find the max overlap (IOU) prediction
+        for prediction_box in predictions.copy():
+
+            iou, max_overlap_box = self._find_box(prediction_box, targets)
+
+            # metrics for average precision calculated here
+            # match found
+            if iou > 0.5:
+
+                true_positive += 1.
+
+                #remove the ground truth box whose match has been found
+                targets.remove(max_overlap_box)
+
+            # not a match
+            else:
+
+                # ground truth box is not removed as it wasn't a true positive
+                false_positive += 1.
+
+            # remove the prediction box irrespective because the best match has
+            # already been found. It may or may not be a good prediction
+            predictions.remove(prediction_box)
+
+
+        # remaining items in prediction set are false positives
+        false_positive += len(predictions)
+
+        # remaining items in target set are false negatives
+        false_negative += len(targets)
+
+        precision = true_positive / (true_positive + false_positive + epsilon)
+
+        recall = true_positive / (true_positive + false_negative)
+
+        return precision, recall
+
+    def _find_box(self, prediction_box, targets):
+
+        max_iou = 0.
+
+        max_overlap_box = None
+
+        for target_box in targets:
+
+            # calculate IOU
+            iou = IOU_by_dims(np.array([prediction_box]), np.array([target_box]))
+
+            if iou > max_iou:
+
+                max_iou = iou
+
+                max_overlap_box = target_box
+
+        return max_iou, max_overlap_box
+
 
 if __name__ == '__main__':
 
